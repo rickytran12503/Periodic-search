@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table of Elements</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#000000;--surface:#11141a;--border:#1e2530;--text:#e0e8f0;--muted:#6a7a8a;--accent:#00d4ff;
+  --alkali:#ff4d6d;--alkaline:#ff8c42;--transition:#4cc9f0;--post-transition:#7bed9f;
+  --metalloid:#ffd60a;--nonmetal:#a8dadc;--halogen:#c77dff;--noble:#ff9e00;
+  --lanthanide:#06d6a0;--actinide:#ef476f;--unknown:#888;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#000000;color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;}
+body{padding:20px;overflow-x:auto;}
+h1{font-family:'Share Tech Mono',monospace;font-size:clamp(18px,2.5vw,28px);letter-spacing:.2em;color:var(--accent);text-align:center;margin-bottom:6px;text-shadow:0 0 20px rgba(0,212,255,.4);}
+.subtitle{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.1em;margin-bottom:16px;font-family:'Share Tech Mono',monospace;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.legend-dot{width:10px;height:10px;border-radius:2px;}
+
+/* Search */
+.search-wrap{display:flex;justify-content:center;margin-bottom:14px;}
+.search-wrap input{background:#0a0a0a;border:1px solid #1e2530;border-radius:6px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:13px;padding:7px 16px;width:320px;outline:none;letter-spacing:1px;transition:border-color .3s;}
+.search-wrap input::placeholder{color:#2a3540;}
+.search-wrap input:focus{border-color:rgba(0,212,255,.4);box-shadow:0 0 8px rgba(0,212,255,.15);}
+
+/* Zoom */
+.zoom-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;}
+.zoom-btn{background:#11141a;border:1px solid #1e2530;color:var(--accent);font-size:18px;width:34px;height:34px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;}
+.zoom-btn:hover{background:#1a2030;box-shadow:0 0 8px rgba(0,212,255,.3);}
+.zoom-reset{font-size:12px;width:auto;padding:0 12px;}
+.zoom-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);min-width:40px;text-align:center;}
+
+.table-wrapper{overflow:auto;padding-bottom:20px;}
+.zoom-stage{transform-origin:top left;display:inline-block;}
+.grid{display:grid;grid-template-columns:repeat(18,minmax(54px,60px));grid-template-rows:repeat(10,minmax(54px,60px));gap:3px;min-width:1000px;margin:0 auto;width:fit-content;}
+
+.cell{position:relative;border:1px solid transparent;border-radius:4px;cursor:pointer;transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 2px;background:var(--surface);overflow:hidden;}
+.cell::before{content:'';position:absolute;inset:0;opacity:.12;border-radius:3px;z-index:0;}
+.cell:hover{transform:scale(1.15);z-index:10;box-shadow:0 0 16px rgba(0,212,255,.4);border-color:var(--accent)!important;}
+
+/* Valence — top right */
+.cell .valence{position:absolute;top:2px;right:4px;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--text);line-height:1;opacity:.85;z-index:2;}
+.cell .num{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);align-self:flex-start;line-height:1;margin-left:3px;z-index:2;position:relative;}
+.cell .sym{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;line-height:1;margin:1px 0;z-index:2;position:relative;}
+.cell .name{font-size:7.5px;color:var(--muted);text-align:center;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;padding:0 2px;z-index:2;position:relative;}
+.cell .mass{font-family:'Share Tech Mono',monospace;font-size:7px;color:var(--muted);opacity:.7;z-index:2;position:relative;}
+
+.alkali .sym{color:var(--alkali);} .alkali::before{background:var(--alkali);} .alkali{border-color:rgba(255,77,109,.3);}
+.alkaline .sym{color:var(--alkaline);} .alkaline::before{background:var(--alkaline);} .alkaline{border-color:rgba(255,140,66,.3);}
+.transition .sym{color:var(--transition);} .transition::before{background:var(--transition);} .transition{border-color:rgba(76,201,240,.3);}
+.post-transition .sym{color:var(--post-transition);} .post-transition::before{background:var(--post-transition);} .post-transition{border-color:rgba(123,237,159,.3);}
+.metalloid .sym{color:var(--metalloid);} .metalloid::before{background:var(--metalloid);} .metalloid{border-color:rgba(255,214,10,.3);}
+.nonmetal .sym{color:var(--nonmetal);} .nonmetal::before{background:var(--nonmetal);} .nonmetal{border-color:rgba(168,218,220,.3);}
+.halogen .sym{color:var(--halogen);} .halogen::before{background:var(--halogen);} .halogen{border-color:rgba(199,125,255,.3);}
+.noble .sym{color:var(--noble);} .noble::before{background:var(--noble);} .noble{border-color:rgba(255,158,0,.3);}
+.lanthanide .sym{color:var(--lanthanide);} .lanthanide::before{background:var(--lanthanide);} .lanthanide{border-color:rgba(6,214,160,.3);}
+.actinide .sym{color:var(--actinide);} .actinide::before{background:var(--actinide);} .actinide{border-color:rgba(239,71,111,.3);}
+.unknown .sym{color:var(--unknown);} .unknown{border-color:rgba(136,136,136,.2);}
+.label-cell{display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);opacity:.5;}
+
+/* Blink glow on search */
+@keyframes blinkGlow{
+  0%,100%{box-shadow:0 0 10px var(--accent),0 0 22px rgba(0,212,255,.6);border-color:var(--accent)!important;transform:scale(1.15);}
+  50%{box-shadow:0 0 3px rgba(0,212,255,.2);border-color:rgba(0,212,255,.2)!important;transform:scale(1.05);}
+}
+.cell.found{animation:blinkGlow .75s ease-in-out infinite;z-index:20;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 22px 26px;max-width:500px;width:95%;position:relative;box-shadow:0 0 40px rgba(0,212,255,.15);max-height:92vh;overflow-y:auto;}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;transition:color .2s;}
+.modal-close:hover{color:var(--text);}
+.modal-header{display:flex;align-items:flex-end;gap:14px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.modal-symbol{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:60px;line-height:1;}
+.modal-header-info{display:flex;flex-direction:column;}
+.modal-number{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:2px;}
+.modal-name{font-size:20px;font-weight:700;letter-spacing:.03em;}
+.modal-category{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:2px;}
+.section-title{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:14px 0 7px;opacity:.7;}
+.props-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.prop{background:rgba(255,255,255,.04);border-radius:6px;padding:8px 10px;border:1px solid var(--border);}
+.prop.full{grid-column:1/-1;}
+.prop-label{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
+.prop-value{font-size:13px;font-weight:600;color:var(--text);}
+.prop-value.mono{font-family:'Share Tech Mono',monospace;font-size:11px;}
+.floors-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.floor-badge{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:4px;padding:4px 9px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);white-space:nowrap;}
+</style>
+</head>
+<body>
+<h1>PERIODIC TABLE OF ELEMENTS</h1>
+<div class="subtitle">118 Elements · Click any element for full details</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--alkali)"></div>Alkali Metal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--alkaline)"></div>Alkaline Earth</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--transition)"></div>Transition Metal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--post-transition)"></div>Post-Transition</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--metalloid)"></div>Metalloid</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--nonmetal)"></div>Nonmetal</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--halogen)"></div>Halogen</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--noble)"></div>Noble Gas</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--lanthanide)"></div>Lanthanide</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--actinide)"></div>Actinide</div>
+</div>
+
+<div class="search-wrap">
+  <input type="text" id="searchInput" placeholder="Search symbol or element name..." autocomplete="off"/>
+</div>
+
+<div class="zoom-bar">
+  <button class="zoom-btn" onclick="zoomOut()">−</button>
+  <span class="zoom-label" id="zoomLabel">100%</span>
+  <button class="zoom-btn" onclick="zoomIn()">+</button>
+  <button class="zoom-btn zoom-reset" onclick="zoomReset()">Reset</button>
+</div>
+
+<div class="table-wrapper" id="tableWrapper">
+  <div class="zoom-stage" id="zoomStage">
+    <div class="grid" id="ptable"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-header">
+      <div class="modal-symbol" id="m-sym"></div>
+      <div class="modal-header-info">
+        <div class="modal-number" id="m-num"></div>
+        <div class="modal-name" id="m-name"></div>
+        <div class="modal-category" id="m-cat"></div>
+      </div>
+    </div>
+    <div class="section-title">Physical Properties</div>
+    <div class="props-grid">
+      <div class="prop"><div class="prop-label">Atomic Mass</div><div class="prop-value mono" id="m-mass"></div></div>
+      <div class="prop"><div class="prop-label">Standard State</div><div class="prop-value" id="m-state"></div></div>
+      <div class="prop"><div class="prop-label">Melting Point</div><div class="prop-value mono" id="m-melt"></div></div>
+      <div class="prop"><div class="prop-label">Boiling Point</div><div class="prop-value mono" id="m-boil"></div></div>
+      <div class="prop"><div class="prop-label">Density</div><div class="prop-value mono" id="m-density"></div></div>
+      <div class="prop"><div class="prop-label">Year Discovered</div><div class="prop-value" id="m-year"></div></div>
+    </div>
+    <div class="section-title">Atomic Properties</div>
+    <div class="props-grid">
+      <div class="prop"><div class="prop-label">Metal / Metalloid / Nonmetal</div><div class="prop-value" id="m-mmn"></div></div>
+      <div class="prop"><div class="prop-label">Oxidation States</div><div class="prop-value mono" id="m-ox"></div></div>
+      <div class="prop"><div class="prop-label">Electronegativity (Pauling)</div><div class="prop-value mono" id="m-en"></div></div>
+      <div class="prop"><div class="prop-label">Atomic Radius (vdW)</div><div class="prop-value mono" id="m-radius"></div></div>
+      <div class="prop"><div class="prop-label">Ionization Energy</div><div class="prop-value mono" id="m-ie"></div></div>
+      <div class="prop"><div class="prop-label">Electron Affinity</div><div class="prop-value mono" id="m-ea"></div></div>
+      <div class="prop"><div class="prop-label">Period</div><div class="prop-value" id="m-period"></div></div>
+      <div class="prop"><div class="prop-label">Group</div><div class="prop-value" id="m-group"></div></div>
+    </div>
+    <div class="section-title">Electron Floors</div>
+    <div class="prop full"><div class="floors-row" id="m-floors"></div></div>
+  </div>
+</div>
+
+<script>
+function kToC(k){if(k===null||k===undefined)return'—';return(k-273.15).toFixed(2)+' °C';}
+function floors(arr){
+  const L=['1F','2F','3F','4F','5F','6F','7F'];
+  return arr.map((e,i)=>e>0?`<span class="floor-badge">${L[i]},${e}</span>`:'').join('');
+}
+function getValence(el){
+  if(el.cat==='lanthanide'||el.cat==='actinide') return 2;
+  const g=el.g;
+  if(g===1) return 1;
+  if(g===2) return 2;
+  if(g>=3&&g<=12) return null;
+  if(g===13) return 3;
+  if(g===14) return 4;
+  if(g===15) return 5;
+  if(g===16) return 6;
+  if(g===17) return 7;
+  if(g===18) return 8;
+  return null;
+}
+
+const CAT={alkali:'Alkali Metal',alkaline:'Alkaline Earth Metal',transition:'Transition Metal','post-transition':'Post-Transition Metal',metalloid:'Metalloid',nonmetal:'Reactive Nonmetal',halogen:'Halogen',noble:'Noble Gas',lanthanide:'Lanthanide',actinide:'Actinide',unknown:'Unknown Properties'};
+const COL={alkali:'var(--alkali)',alkaline:'var(--alkaline)',transition:'var(--transition)','post-transition':'var(--post-transition)',metalloid:'var(--metalloid)',nonmetal:'var(--nonmetal)',halogen:'var(--halogen)',noble:'var(--noble)',lanthanide:'var(--lanthanide)',actinide:'var(--actinide)',unknown:'var(--unknown)'};
+
+const E=[
+ {n:1,s:'H',name:'Hydrogen',mass:'1.008',cat:'nonmetal',mmn:'Nonmetal',p:1,g:1,cfg:'1s¹',fl:[1,0,0,0,0,0,0],en:'2.20',state:'Gas',ox:'−1, +1',r:'120 pm',ie:'13.598 eV',ea:'0.754 eV',melt:14.01,boil:20.28,den:'0.0000899 g/cm³',yr:'Ancient',col:1,row:1},
+ {n:2,s:'He',name:'Helium',mass:'4.003',cat:'noble',mmn:'Nonmetal',p:1,g:18,cfg:'1s²',fl:[2,0,0,0,0,0,0],en:'—',state:'Gas',ox:'0',r:'140 pm',ie:'24.587 eV',ea:'—',melt:null,boil:4.22,den:'0.000164 g/cm³',yr:'1868',col:18,row:1},
+ {n:3,s:'Li',name:'Lithium',mass:'6.941',cat:'alkali',mmn:'Metal',p:2,g:1,cfg:'[He] 2s¹',fl:[2,1,0,0,0,0,0],en:'0.98',state:'Solid',ox:'+1',r:'182 pm',ie:'5.392 eV',ea:'0.618 eV',melt:453.69,boil:1560,den:'0.535 g/cm³',yr:'1817',col:1,row:2},
+ {n:4,s:'Be',name:'Beryllium',mass:'9.012',cat:'alkaline',mmn:'Metal',p:2,g:2,cfg:'[He] 2s²',fl:[2,2,0,0,0,0,0],en:'1.57',state:'Solid',ox:'+2',r:'153 pm',ie:'9.323 eV',ea:'—',melt:1560,boil:2742,den:'1.848 g/cm³',yr:'1798',col:2,row:2},
+ {n:5,s:'B',name:'Boron',mass:'10.81',cat:'metalloid',mmn:'Metalloid',p:2,g:13,cfg:'[He] 2s² 2p¹',fl:[2,3,0,0,0,0,0],en:'2.04',state:'Solid',ox:'+3',r:'192 pm',ie:'8.298 eV',ea:'0.277 eV',melt:2349,boil:4200,den:'2.460 g/cm³',yr:'1808',col:13,row:2},
+ {n:6,s:'C',name:'Carbon',mass:'12.011',cat:'nonmetal',mmn:'Nonmetal',p:2,g:14,cfg:'[He] 2s² 2p²',fl:[2,4,0,0,0,0,0],en:'2.55',state:'Solid',ox:'+4, +2, −4',r:'170 pm',ie:'11.260 eV',ea:'1.263 eV',melt:3823,boil:4098,den:'2.267 g/cm³',yr:'Ancient',col:14,row:2},
+ {n:7,s:'N',name:'Nitrogen',mass:'14.007',cat:'nonmetal',mmn:'Nonmetal',p:2,g:15,cfg:'[He] 2s² 2p³',fl:[2,5,0,0,0,0,0],en:'3.04',state:'Gas',ox:'+5,+3,−3',r:'155 pm',ie:'14.534 eV',ea:'—',melt:63.15,boil:77.36,den:'0.001145 g/cm³',yr:'1772',col:15,row:2},
+ {n:8,s:'O',name:'Oxygen',mass:'15.999',cat:'nonmetal',mmn:'Nonmetal',p:2,g:16,cfg:'[He] 2s² 2p⁴',fl:[2,6,0,0,0,0,0],en:'3.44',state:'Gas',ox:'−2,+1,+2',r:'152 pm',ie:'13.618 eV',ea:'1.461 eV',melt:54.36,boil:90.20,den:'0.001308 g/cm³',yr:'1774',col:16,row:2},
+ {n:9,s:'F',name:'Fluorine',mass:'18.998',cat:'halogen',mmn:'Nonmetal',p:2,g:17,cfg:'[He] 2s² 2p⁵',fl:[2,7,0,0,0,0,0],en:'3.98',state:'Gas',ox:'−1',r:'147 pm',ie:'17.423 eV',ea:'3.399 eV',melt:53.53,boil:85.03,den:'0.001580 g/cm³',yr:'1886',col:17,row:2},
+ {n:10,s:'Ne',name:'Neon',mass:'20.180',cat:'noble',mmn:'Nonmetal',p:2,g:18,cfg:'[He] 2s² 2p⁶',fl:[2,8,0,0,0,0,0],en:'—',state:'Gas',ox:'0',r:'154 pm',ie:'21.565 eV',ea:'—',melt:24.56,boil:27.07,den:'0.000839 g/cm³',yr:'1898',col:18,row:2},
+ {n:11,s:'Na',name:'Sodium',mass:'22.990',cat:'alkali',mmn:'Metal',p:3,g:1,cfg:'[Ne] 3s¹',fl:[2,8,1,0,0,0,0],en:'0.93',state:'Solid',ox:'+1',r:'227 pm',ie:'5.139 eV',ea:'0.548 eV',melt:370.95,boil:1156,den:'0.968 g/cm³',yr:'1807',col:1,row:3},
+ {n:12,s:'Mg',name:'Magnesium',mass:'24.305',cat:'alkaline',mmn:'Metal',p:3,g:2,cfg:'[Ne] 3s²',fl:[2,8,2,0,0,0,0],en:'1.31',state:'Solid',ox:'+2',r:'173 pm',ie:'7.646 eV',ea:'—',melt:923,boil:1363,den:'1.738 g/cm³',yr:'1755',col:2,row:3},
+ {n:13,s:'Al',name:'Aluminum',mass:'26.982',cat:'post-transition',mmn:'Metal',p:3,g:13,cfg:'[Ne] 3s² 3p¹',fl:[2,8,3,0,0,0,0],en:'1.61',state:'Solid',ox:'+3',r:'184 pm',ie:'5.986 eV',ea:'0.441 eV',melt:933.47,boil:2792,den:'2.700 g/cm³',yr:'1825',col:13,row:3},
+ {n:14,s:'Si',name:'Silicon',mass:'28.086',cat:'metalloid',mmn:'Metalloid',p:3,g:14,cfg:'[Ne] 3s² 3p²',fl:[2,8,4,0,0,0,0],en:'1.90',state:'Solid',ox:'+4,−4',r:'210 pm',ie:'8.152 eV',ea:'1.385 eV',melt:1687,boil:3538,den:'2.330 g/cm³',yr:'1824',col:14,row:3},
+ {n:15,s:'P',name:'Phosphorus',mass:'30.974',cat:'nonmetal',mmn:'Nonmetal',p:3,g:15,cfg:'[Ne] 3s² 3p³',fl:[2,8,5,0,0,0,0],en:'2.19',state:'Solid',ox:'+5,+3,−3',r:'180 pm',ie:'10.487 eV',ea:'0.747 eV',melt:317.30,boil:553.65,den:'1.823 g/cm³',yr:'1669',col:15,row:3},
+ {n:16,s:'S',name:'Sulfur',mass:'32.06',cat:'nonmetal',mmn:'Nonmetal',p:3,g:16,cfg:'[Ne] 3s² 3p⁴',fl:[2,8,6,0,0,0,0],en:'2.58',state:'Solid',ox:'+6,+4,−2',r:'180 pm',ie:'10.360 eV',ea:'2.077 eV',melt:388.36,boil:717.75,den:'1.960 g/cm³',yr:'Ancient',col:16,row:3},
+ {n:17,s:'Cl',name:'Chlorine',mass:'35.45',cat:'halogen',mmn:'Nonmetal',p:3,g:17,cfg:'[Ne] 3s² 3p⁵',fl:[2,8,7,0,0,0,0],en:'3.16',state:'Gas',ox:'+7,+5,−1',r:'175 pm',ie:'12.968 eV',ea:'3.617 eV',melt:171.65,boil:239.11,den:'0.002898 g/cm³',yr:'1774',col:17,row:3},
+ {n:18,s:'Ar',name:'Argon',mass:'39.948',cat:'noble',mmn:'Nonmetal',p:3,g:18,cfg:'[Ne] 3s² 3p⁶',fl:[2,8,8,0,0,0,0],en:'—',state:'Gas',ox:'0',r:'188 pm',ie:'15.760 eV',ea:'—',melt:83.80,boil:87.30,den:'0.001634 g/cm³',yr:'1894',col:18,row:3},
+ {n:19,s:'K',name:'Potassium',mass:'39.098',cat:'alkali',mmn:'Metal',p:4,g:1,cfg:'[Ar] 4s¹',fl:[2,8,8,1,0,0,0],en:'0.82',state:'Solid',ox:'+1',r:'275 pm',ie:'4.341 eV',ea:'0.502 eV',melt:336.53,boil:1032,den:'0.862 g/cm³',yr:'1807',col:1,row:4},
+ {n:20,s:'Ca',name:'Calcium',mass:'40.078',cat:'alkaline',mmn:'Metal',p:4,g:2,cfg:'[Ar] 4s²',fl:[2,8,8,2,0,0,0],en:'1.00',state:'Solid',ox:'+2',r:'231 pm',ie:'6.113 eV',ea:'0.018 eV',melt:1115,boil:1757,den:'1.550 g/cm³',yr:'1808',col:2,row:4},
+ {n:21,s:'Sc',name:'Scandium',mass:'44.956',cat:'transition',mmn:'Metal',p:4,g:3,cfg:'[Ar] 3d¹ 4s²',fl:[2,8,9,2,0,0,0],en:'1.36',state:'Solid',ox:'+3',r:'211 pm',ie:'6.561 eV',ea:'0.188 eV',melt:1814,boil:3109,den:'2.985 g/cm³',yr:'1879',col:3,row:4},
+ {n:22,s:'Ti',name:'Titanium',mass:'47.867',cat:'transition',mmn:'Metal',p:4,g:4,cfg:'[Ar] 3d² 4s²',fl:[2,8,10,2,0,0,0],en:'1.54',state:'Solid',ox:'+4,+3,+2',r:'187 pm',ie:'6.828 eV',ea:'0.079 eV',melt:1941,boil:3560,den:'4.507 g/cm³',yr:'1791',col:4,row:4},
+ {n:23,s:'V',name:'Vanadium',mass:'50.942',cat:'transition',mmn:'Metal',p:4,g:5,cfg:'[Ar] 3d³ 4s²',fl:[2,8,11,2,0,0,0],en:'1.63',state:'Solid',ox:'+5,+4,+3,+2',r:'179 pm',ie:'6.746 eV',ea:'0.526 eV',melt:2183,boil:3680,den:'6.110 g/cm³',yr:'1801',col:5,row:4},
+ {n:24,s:'Cr',name:'Chromium',mass:'51.996',cat:'transition',mmn:'Metal',p:4,g:6,cfg:'[Ar] 3d⁵ 4s¹',fl:[2,8,13,1,0,0,0],en:'1.66',state:'Solid',ox:'+6,+3,+2',r:'189 pm',ie:'6.767 eV',ea:'0.666 eV',melt:2180,boil:2944,den:'7.190 g/cm³',yr:'1798',col:6,row:4},
+ {n:25,s:'Mn',name:'Manganese',mass:'54.938',cat:'transition',mmn:'Metal',p:4,g:7,cfg:'[Ar] 3d⁵ 4s²',fl:[2,8,13,2,0,0,0],en:'1.55',state:'Solid',ox:'+7,+4,+2',r:'197 pm',ie:'7.434 eV',ea:'—',melt:1519,boil:2334,den:'7.470 g/cm³',yr:'1774',col:7,row:4},
+ {n:26,s:'Fe',name:'Iron',mass:'55.845',cat:'transition',mmn:'Metal',p:4,g:8,cfg:'[Ar] 3d⁶ 4s²',fl:[2,8,14,2,0,0,0],en:'1.83',state:'Solid',ox:'+3,+2',r:'194 pm',ie:'7.902 eV',ea:'0.151 eV',melt:1811,boil:3134,den:'7.874 g/cm³',yr:'Ancient',col:8,row:4},
+ {n:27,s:'Co',name:'Cobalt',mass:'58.933',cat:'transition',mmn:'Metal',p:4,g:9,cfg:'[Ar] 3d⁷ 4s²',fl:[2,8,15,2,0,0,0],en:'1.88',state:'Solid',ox:'+3,+2',r:'192 pm',ie:'7.881 eV',ea:'0.662 eV',melt:1768,boil:3200,den:'8.900 g/cm³',yr:'1735',col:9,row:4},
+ {n:28,s:'Ni',name:'Nickel',mass:'58.693',cat:'transition',mmn:'Metal',p:4,g:10,cfg:'[Ar] 3d⁸ 4s²',fl:[2,8,16,2,0,0,0],en:'1.91',state:'Solid',ox:'+2,+3',r:'163 pm',ie:'7.640 eV',ea:'1.156 eV',melt:1728,boil:3186,den:'8.908 g/cm³',yr:'1751',col:10,row:4},
+ {n:29,s:'Cu',name:'Copper',mass:'63.546',cat:'transition',mmn:'Metal',p:4,g:11,cfg:'[Ar] 3d¹⁰ 4s¹',fl:[2,8,18,1,0,0,0],en:'1.90',state:'Solid',ox:'+2,+1',r:'140 pm',ie:'7.727 eV',ea:'1.228 eV',melt:1357.77,boil:2835,den:'8.960 g/cm³',yr:'Ancient',col:11,row:4},
+ {n:30,s:'Zn',name:'Zinc',mass:'65.38',cat:'transition',mmn:'Metal',p:4,g:12,cfg:'[Ar] 3d¹⁰ 4s²',fl:[2,8,18,2,0,0,0],en:'1.65',state:'Solid',ox:'+2',r:'139 pm',ie:'9.394 eV',ea:'—',melt:692.68,boil:1180,den:'7.134 g/cm³',yr:'Ancient',col:12,row:4},
+ {n:31,s:'Ga',name:'Gallium',mass:'69.723',cat:'post-transition',mmn:'Metal',p:4,g:13,cfg:'[Ar] 3d¹⁰ 4s² 4p¹',fl:[2,8,18,3,0,0,0],en:'1.81',state:'Solid',ox:'+3',r:'187 pm',ie:'5.999 eV',ea:'0.300 eV',melt:302.91,boil:2477,den:'5.907 g/cm³',yr:'1875',col:13,row:4},
+ {n:32,s:'Ge',name:'Germanium',mass:'72.630',cat:'metalloid',mmn:'Metalloid',p:4,g:14,cfg:'[Ar] 3d¹⁰ 4s² 4p²',fl:[2,8,18,4,0,0,0],en:'2.01',state:'Solid',ox:'+4,+2',r:'211 pm',ie:'7.900 eV',ea:'1.233 eV',melt:1211.40,boil:3106,den:'5.323 g/cm³',yr:'1886',col:14,row:4},
+ {n:33,s:'As',name:'Arsenic',mass:'74.922',cat:'metalloid',mmn:'Metalloid',p:4,g:15,cfg:'[Ar] 3d¹⁰ 4s² 4p³',fl:[2,8,18,5,0,0,0],en:'2.18',state:'Solid',ox:'+5,+3,−3',r:'185 pm',ie:'9.815 eV',ea:'0.810 eV',melt:1090,boil:887,den:'5.727 g/cm³',yr:'Ancient',col:15,row:4},
+ {n:34,s:'Se',name:'Selenium',mass:'78.971',cat:'nonmetal',mmn:'Nonmetal',p:4,g:16,cfg:'[Ar] 3d¹⁰ 4s² 4p⁴',fl:[2,8,18,6,0,0,0],en:'2.55',state:'Solid',ox:'+6,+4,−2',r:'190 pm',ie:'9.752 eV',ea:'2.021 eV',melt:494,boil:958,den:'4.819 g/cm³',yr:'1817',col:16,row:4},
+ {n:35,s:'Br',name:'Bromine',mass:'79.904',cat:'halogen',mmn:'Nonmetal',p:4,g:17,cfg:'[Ar] 3d¹⁰ 4s² 4p⁵',fl:[2,8,18,7,0,0,0],en:'2.96',state:'Liquid',ox:'+5,+1,−1',r:'185 pm',ie:'11.814 eV',ea:'3.365 eV',melt:265.95,boil:332,den:'3.102 g/cm³',yr:'1826',col:17,row:4},
+ {n:36,s:'Kr',name:'Krypton',mass:'83.798',cat:'noble',mmn:'Nonmetal',p:4,g:18,cfg:'[Ar] 3d¹⁰ 4s² 4p⁶',fl:[2,8,18,8,0,0,0],en:'3.00',state:'Gas',ox:'0',r:'202 pm',ie:'13.999 eV',ea:'—',melt:115.79,boil:119.93,den:'0.003425 g/cm³',yr:'1898',col:18,row:4},
+ {n:37,s:'Rb',name:'Rubidium',mass:'85.468',cat:'alkali',mmn:'Metal',p:5,g:1,cfg:'[Kr] 5s¹',fl:[2,8,18,8,1,0,0],en:'0.82',state:'Solid',ox:'+1',r:'303 pm',ie:'4.177 eV',ea:'0.486 eV',melt:312.46,boil:961,den:'1.532 g/cm³',yr:'1861',col:1,row:5},
+ {n:38,s:'Sr',name:'Strontium',mass:'87.62',cat:'alkaline',mmn:'Metal',p:5,g:2,cfg:'[Kr] 5s²',fl:[2,8,18,8,2,0,0],en:'0.95',state:'Solid',ox:'+2',r:'249 pm',ie:'5.695 eV',ea:'0.048 eV',melt:1050,boil:1655,den:'2.630 g/cm³',yr:'1790',col:2,row:5},
+ {n:39,s:'Y',name:'Yttrium',mass:'88.906',cat:'transition',mmn:'Metal',p:5,g:3,cfg:'[Kr] 4d¹ 5s²',fl:[2,8,18,9,2,0,0],en:'1.22',state:'Solid',ox:'+3',r:'219 pm',ie:'6.217 eV',ea:'0.307 eV',melt:1799,boil:3609,den:'4.472 g/cm³',yr:'1794',col:3,row:5},
+ {n:40,s:'Zr',name:'Zirconium',mass:'91.224',cat:'transition',mmn:'Metal',p:5,g:4,cfg:'[Kr] 4d² 5s²',fl:[2,8,18,10,2,0,0],en:'1.33',state:'Solid',ox:'+4',r:'186 pm',ie:'6.634 eV',ea:'0.426 eV',melt:2128,boil:4682,den:'6.511 g/cm³',yr:'1789',col:4,row:5},
+ {n:41,s:'Nb',name:'Niobium',mass:'92.906',cat:'transition',mmn:'Metal',p:5,g:5,cfg:'[Kr] 4d⁴ 5s¹',fl:[2,8,18,12,1,0,0],en:'1.60',state:'Solid',ox:'+5',r:'207 pm',ie:'6.759 eV',ea:'0.893 eV',melt:2750,boil:5017,den:'8.570 g/cm³',yr:'1801',col:5,row:5},
+ {n:42,s:'Mo',name:'Molybdenum',mass:'95.95',cat:'transition',mmn:'Metal',p:5,g:6,cfg:'[Kr] 4d⁵ 5s¹',fl:[2,8,18,13,1,0,0],en:'2.16',state:'Solid',ox:'+6,+4,+2',r:'209 pm',ie:'7.092 eV',ea:'0.746 eV',melt:2896,boil:4912,den:'10.280 g/cm³',yr:'1778',col:6,row:5},
+ {n:43,s:'Tc',name:'Technetium',mass:'[98]',cat:'transition',mmn:'Metal',p:5,g:7,cfg:'[Kr] 4d⁵ 5s²',fl:[2,8,18,13,2,0,0],en:'1.90',state:'Solid',ox:'+7,+4',r:'209 pm',ie:'7.280 eV',ea:'0.550 eV',melt:2430,boil:4538,den:'11.000 g/cm³',yr:'1937',col:7,row:5},
+ {n:44,s:'Ru',name:'Ruthenium',mass:'101.07',cat:'transition',mmn:'Metal',p:5,g:8,cfg:'[Kr] 4d⁷ 5s¹',fl:[2,8,18,15,1,0,0],en:'2.20',state:'Solid',ox:'+4,+3',r:'207 pm',ie:'7.361 eV',ea:'1.050 eV',melt:2607,boil:4423,den:'12.370 g/cm³',yr:'1844',col:8,row:5},
+ {n:45,s:'Rh',name:'Rhodium',mass:'102.906',cat:'transition',mmn:'Metal',p:5,g:9,cfg:'[Kr] 4d⁸ 5s¹',fl:[2,8,18,16,1,0,0],en:'2.28',state:'Solid',ox:'+3',r:'195 pm',ie:'7.459 eV',ea:'1.137 eV',melt:2237,boil:3968,den:'12.410 g/cm³',yr:'1803',col:9,row:5},
+ {n:46,s:'Pd',name:'Palladium',mass:'106.42',cat:'transition',mmn:'Metal',p:5,g:10,cfg:'[Kr] 4d¹⁰',fl:[2,8,18,18,0,0,0],en:'2.20',state:'Solid',ox:'+4,+2',r:'202 pm',ie:'8.337 eV',ea:'0.562 eV',melt:1828.05,boil:3236,den:'12.023 g/cm³',yr:'1803',col:10,row:5},
+ {n:47,s:'Ag',name:'Silver',mass:'107.868',cat:'transition',mmn:'Metal',p:5,g:11,cfg:'[Kr] 4d¹⁰ 5s¹',fl:[2,8,18,18,1,0,0],en:'1.93',state:'Solid',ox:'+1',r:'172 pm',ie:'7.576 eV',ea:'1.302 eV',melt:1234.93,boil:2435,den:'10.490 g/cm³',yr:'Ancient',col:11,row:5},
+ {n:48,s:'Cd',name:'Cadmium',mass:'112.414',cat:'transition',mmn:'Metal',p:5,g:12,cfg:'[Kr] 4d¹⁰ 5s²',fl:[2,8,18,18,2,0,0],en:'1.69',state:'Solid',ox:'+2',r:'158 pm',ie:'8.994 eV',ea:'—',melt:594.22,boil:1040,den:'8.650 g/cm³',yr:'1817',col:12,row:5},
+ {n:49,s:'In',name:'Indium',mass:'114.818',cat:'post-transition',mmn:'Metal',p:5,g:13,cfg:'[Kr] 4d¹⁰ 5s² 5p¹',fl:[2,8,18,18,3,0,0],en:'1.78',state:'Solid',ox:'+3',r:'193 pm',ie:'5.786 eV',ea:'0.300 eV',melt:429.75,boil:2345,den:'7.310 g/cm³',yr:'1863',col:13,row:5},
+ {n:50,s:'Sn',name:'Tin',mass:'118.710',cat:'post-transition',mmn:'Metal',p:5,g:14,cfg:'[Kr] 4d¹⁰ 5s² 5p²',fl:[2,8,18,18,4,0,0],en:'1.96',state:'Solid',ox:'+4,+2',r:'217 pm',ie:'7.344 eV',ea:'1.112 eV',melt:505.08,boil:2875,den:'7.265 g/cm³',yr:'Ancient',col:14,row:5},
+ {n:51,s:'Sb',name:'Antimony',mass:'121.760',cat:'metalloid',mmn:'Metalloid',p:5,g:15,cfg:'[Kr] 4d¹⁰ 5s² 5p³',fl:[2,8,18,18,5,0,0],en:'2.05',state:'Solid',ox:'+5,+3,−3',r:'206 pm',ie:'8.608 eV',ea:'1.047 eV',melt:903.78,boil:1908,den:'6.697 g/cm³',yr:'Ancient',col:15,row:5},
+ {n:52,s:'Te',name:'Tellurium',mass:'127.60',cat:'metalloid',mmn:'Metalloid',p:5,g:16,cfg:'[Kr] 4d¹⁰ 5s² 5p⁴',fl:[2,8,18,18,6,0,0],en:'2.10',state:'Solid',ox:'+6,+4,−2',r:'206 pm',ie:'9.010 eV',ea:'1.971 eV',melt:722.66,boil:1261,den:'6.240 g/cm³',yr:'1782',col:16,row:5},
+ {n:53,s:'I',name:'Iodine',mass:'126.904',cat:'halogen',mmn:'Nonmetal',p:5,g:17,cfg:'[Kr] 4d¹⁰ 5s² 5p⁵',fl:[2,8,18,18,7,0,0],en:'2.66',state:'Solid',ox:'+7,+5,−1',r:'198 pm',ie:'10.451 eV',ea:'3.059 eV',melt:386.85,boil:457.4,den:'4.940 g/cm³',yr:'1811',col:17,row:5},
+ {n:54,s:'Xe',name:'Xenon',mass:'131.293',cat:'noble',mmn:'Nonmetal',p:5,g:18,cfg:'[Kr] 4d¹⁰ 5s² 5p⁶',fl:[2,8,18,18,8,0,0],en:'2.60',state:'Gas',ox:'0',r:'216 pm',ie:'12.130 eV',ea:'—',melt:161.40,boil:165.03,den:'0.005366 g/cm³',yr:'1898',col:18,row:5},
+ {n:55,s:'Cs',name:'Cesium',mass:'132.905',cat:'alkali',mmn:'Metal',p:6,g:1,cfg:'[Xe] 6s¹',fl:[2,8,18,18,8,1,0],en:'0.79',state:'Solid',ox:'+1',r:'343 pm',ie:'3.894 eV',ea:'0.472 eV',melt:301.59,boil:944,den:'1.879 g/cm³',yr:'1860',col:1,row:6},
+ {n:56,s:'Ba',name:'Barium',mass:'137.327',cat:'alkaline',mmn:'Metal',p:6,g:2,cfg:'[Xe] 6s²',fl:[2,8,18,18,8,2,0],en:'0.89',state:'Solid',ox:'+2',r:'268 pm',ie:'5.212 eV',ea:'0.145 eV',melt:1000,boil:2170,den:'3.510 g/cm³',yr:'1808',col:2,row:6},
+ {n:57,s:'La',name:'Lanthanum',mass:'138.905',cat:'lanthanide',mmn:'Metal',p:6,g:3,cfg:'[Xe] 5d¹ 6s²',fl:[2,8,18,18,9,2,0],en:'1.10',state:'Solid',ox:'+3',r:'243 pm',ie:'5.577 eV',ea:'0.500 eV',melt:1193,boil:3737,den:'6.162 g/cm³',yr:'1839',col:3,row:8},
+ {n:58,s:'Ce',name:'Cerium',mass:'140.116',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹ 5d¹ 6s²',fl:[2,8,18,19,9,2,0],en:'1.12',state:'Solid',ox:'+4,+3',r:'242 pm',ie:'5.539 eV',ea:'0.500 eV',melt:1068,boil:3716,den:'6.770 g/cm³',yr:'1803',col:4,row:8},
+ {n:59,s:'Pr',name:'Praseodymium',mass:'140.908',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f³ 6s²',fl:[2,8,18,21,8,2,0],en:'1.13',state:'Solid',ox:'+3',r:'240 pm',ie:'5.473 eV',ea:'0.500 eV',melt:1208,boil:3793,den:'6.770 g/cm³',yr:'1885',col:5,row:8},
+ {n:60,s:'Nd',name:'Neodymium',mass:'144.242',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁴ 6s²',fl:[2,8,18,22,8,2,0],en:'1.14',state:'Solid',ox:'+3',r:'239 pm',ie:'5.525 eV',ea:'0.500 eV',melt:1297,boil:3347,den:'7.010 g/cm³',yr:'1885',col:6,row:8},
+ {n:61,s:'Pm',name:'Promethium',mass:'[145]',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁵ 6s²',fl:[2,8,18,23,8,2,0],en:'1.13',state:'Solid',ox:'+3',r:'236 pm',ie:'5.582 eV',ea:'0.500 eV',melt:1315,boil:3273,den:'7.260 g/cm³',yr:'1945',col:7,row:8},
+ {n:62,s:'Sm',name:'Samarium',mass:'150.36',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁶ 6s²',fl:[2,8,18,24,8,2,0],en:'1.17',state:'Solid',ox:'+3,+2',r:'229 pm',ie:'5.644 eV',ea:'0.500 eV',melt:1345,boil:2067,den:'7.520 g/cm³',yr:'1879',col:8,row:8},
+ {n:63,s:'Eu',name:'Europium',mass:'151.964',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁷ 6s²',fl:[2,8,18,25,8,2,0],en:'1.20',state:'Solid',ox:'+3,+2',r:'233 pm',ie:'5.670 eV',ea:'0.500 eV',melt:1099,boil:1802,den:'5.244 g/cm³',yr:'1901',col:9,row:8},
+ {n:64,s:'Gd',name:'Gadolinium',mass:'157.25',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁷ 5d¹ 6s²',fl:[2,8,18,25,9,2,0],en:'1.20',state:'Solid',ox:'+3',r:'237 pm',ie:'6.150 eV',ea:'0.500 eV',melt:1585,boil:3546,den:'7.895 g/cm³',yr:'1880',col:10,row:8},
+ {n:65,s:'Tb',name:'Terbium',mass:'158.925',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f⁹ 6s²',fl:[2,8,18,27,8,2,0],en:'1.20',state:'Solid',ox:'+3',r:'221 pm',ie:'5.864 eV',ea:'0.500 eV',melt:1629,boil:3503,den:'8.229 g/cm³',yr:'1843',col:11,row:8},
+ {n:66,s:'Dy',name:'Dysprosium',mass:'162.500',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹⁰ 6s²',fl:[2,8,18,28,8,2,0],en:'1.22',state:'Solid',ox:'+3',r:'229 pm',ie:'5.939 eV',ea:'0.500 eV',melt:1680,boil:2840,den:'8.551 g/cm³',yr:'1886',col:12,row:8},
+ {n:67,s:'Ho',name:'Holmium',mass:'164.930',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹¹ 6s²',fl:[2,8,18,29,8,2,0],en:'1.23',state:'Solid',ox:'+3',r:'216 pm',ie:'6.022 eV',ea:'0.500 eV',melt:1734,boil:2993,den:'8.795 g/cm³',yr:'1878',col:13,row:8},
+ {n:68,s:'Er',name:'Erbium',mass:'167.259',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹² 6s²',fl:[2,8,18,30,8,2,0],en:'1.24',state:'Solid',ox:'+3',r:'235 pm',ie:'6.108 eV',ea:'0.500 eV',melt:1802,boil:3141,den:'9.066 g/cm³',yr:'1842',col:14,row:8},
+ {n:69,s:'Tm',name:'Thulium',mass:'168.934',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹³ 6s²',fl:[2,8,18,31,8,2,0],en:'1.25',state:'Solid',ox:'+3',r:'227 pm',ie:'6.184 eV',ea:'0.500 eV',melt:1818,boil:2223,den:'9.321 g/cm³',yr:'1879',col:15,row:8},
+ {n:70,s:'Yb',name:'Ytterbium',mass:'173.054',cat:'lanthanide',mmn:'Metal',p:6,g:null,cfg:'[Xe] 4f¹⁴ 6s²',fl:[2,8,18,32,8,2,0],en:'1.10',state:'Solid',ox:'+3,+2',r:'242 pm',ie:'6.254 eV',ea:'0.500 eV',melt:1097,boil:1469,den:'6.965 g/cm³',yr:'1878',col:16,row:8},
+ {n:71,s:'Lu',name:'Lutetium',mass:'174.967',cat:'lanthanide',mmn:'Metal',p:6,g:3,cfg:'[Xe] 4f¹⁴ 5d¹ 6s²',fl:[2,8,18,32,9,2,0],en:'1.27',state:'Solid',ox:'+3',r:'221 pm',ie:'5.426 eV',ea:'0.500 eV',melt:1925,boil:3675,den:'9.841 g/cm³',yr:'1907',col:17,row:8},
+ {n:72,s:'Hf',name:'Hafnium',mass:'178.49',cat:'transition',mmn:'Metal',p:6,g:4,cfg:'[Xe] 4f¹⁴ 5d² 6s²',fl:[2,8,18,32,10,2,0],en:'1.30',state:'Solid',ox:'+4',r:'212 pm',ie:'6.825 eV',ea:'0.178 eV',melt:2506,boil:4876,den:'13.310 g/cm³',yr:'1923',col:4,row:6},
+ {n:73,s:'Ta',name:'Tantalum',mass:'180.948',cat:'transition',mmn:'Metal',p:6,g:5,cfg:'[Xe] 4f¹⁴ 5d³ 6s²',fl:[2,8,18,32,11,2,0],en:'1.50',state:'Solid',ox:'+5',r:'217 pm',ie:'7.549 eV',ea:'0.322 eV',melt:3290,boil:5731,den:'16.650 g/cm³',yr:'1802',col:5,row:6},
+ {n:74,s:'W',name:'Tungsten',mass:'183.84',cat:'transition',mmn:'Metal',p:6,g:6,cfg:'[Xe] 4f¹⁴ 5d⁴ 6s²',fl:[2,8,18,32,12,2,0],en:'2.36',state:'Solid',ox:'+6',r:'210 pm',ie:'7.864 eV',ea:'0.816 eV',melt:3695,boil:5828,den:'19.250 g/cm³',yr:'1783',col:6,row:6},
+ {n:75,s:'Re',name:'Rhenium',mass:'186.207',cat:'transition',mmn:'Metal',p:6,g:7,cfg:'[Xe] 4f¹⁴ 5d⁵ 6s²',fl:[2,8,18,32,13,2,0],en:'1.90',state:'Solid',ox:'+7,+4',r:'217 pm',ie:'7.833 eV',ea:'0.150 eV',melt:3459,boil:5869,den:'21.020 g/cm³',yr:'1925',col:7,row:6},
+ {n:76,s:'Os',name:'Osmium',mass:'190.23',cat:'transition',mmn:'Metal',p:6,g:8,cfg:'[Xe] 4f¹⁴ 5d⁶ 6s²',fl:[2,8,18,32,14,2,0],en:'2.20',state:'Solid',ox:'+4,+3',r:'216 pm',ie:'8.438 eV',ea:'1.100 eV',melt:3306,boil:5285,den:'22.590 g/cm³',yr:'1803',col:8,row:6},
+ {n:77,s:'Ir',name:'Iridium',mass:'192.217',cat:'transition',mmn:'Metal',p:6,g:9,cfg:'[Xe] 4f¹⁴ 5d⁷ 6s²',fl:[2,8,18,32,15,2,0],en:'2.20',state:'Solid',ox:'+4,+3',r:'213 pm',ie:'8.967 eV',ea:'1.565 eV',melt:2719,boil:4701,den:'22.560 g/cm³',yr:'1803',col:9,row:6},
+ {n:78,s:'Pt',name:'Platinum',mass:'195.084',cat:'transition',mmn:'Metal',p:6,g:10,cfg:'[Xe] 4f¹⁴ 5d⁹ 6s¹',fl:[2,8,18,32,17,1,0],en:'2.28',state:'Solid',ox:'+4,+2',r:'175 pm',ie:'8.959 eV',ea:'2.128 eV',melt:2041.55,boil:4098,den:'21.450 g/cm³',yr:'1735',col:10,row:6},
+ {n:79,s:'Au',name:'Gold',mass:'196.967',cat:'transition',mmn:'Metal',p:6,g:11,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s¹',fl:[2,8,18,32,18,1,0],en:'2.54',state:'Solid',ox:'+3,+1',r:'166 pm',ie:'9.226 eV',ea:'2.309 eV',melt:1337.33,boil:3129,den:'19.300 g/cm³',yr:'Ancient',col:11,row:6},
+ {n:80,s:'Hg',name:'Mercury',mass:'200.592',cat:'transition',mmn:'Metal',p:6,g:12,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s²',fl:[2,8,18,32,18,2,0],en:'2.00',state:'Liquid',ox:'+2,+1',r:'155 pm',ie:'10.438 eV',ea:'—',melt:234.32,boil:629.88,den:'13.534 g/cm³',yr:'Ancient',col:12,row:6},
+ {n:81,s:'Tl',name:'Thallium',mass:'204.38',cat:'post-transition',mmn:'Metal',p:6,g:13,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹',fl:[2,8,18,32,18,3,0],en:'1.62',state:'Solid',ox:'+3,+1',r:'196 pm',ie:'6.108 eV',ea:'0.200 eV',melt:577,boil:1746,den:'11.850 g/cm³',yr:'1861',col:13,row:6},
+ {n:82,s:'Pb',name:'Lead',mass:'207.2',cat:'post-transition',mmn:'Metal',p:6,g:14,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²',fl:[2,8,18,32,18,4,0],en:'2.33',state:'Solid',ox:'+4,+2',r:'202 pm',ie:'7.417 eV',ea:'0.364 eV',melt:600.61,boil:2022,den:'11.340 g/cm³',yr:'Ancient',col:14,row:6},
+ {n:83,s:'Bi',name:'Bismuth',mass:'208.980',cat:'post-transition',mmn:'Metal',p:6,g:15,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³',fl:[2,8,18,32,18,5,0],en:'2.02',state:'Solid',ox:'+5,+3',r:'207 pm',ie:'7.289 eV',ea:'0.942 eV',melt:544.55,boil:1837,den:'9.780 g/cm³',yr:'Ancient',col:15,row:6},
+ {n:84,s:'Po',name:'Polonium',mass:'[209]',cat:'post-transition',mmn:'Metal',p:6,g:16,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴',fl:[2,8,18,32,18,6,0],en:'2.00',state:'Solid',ox:'+4,+2',r:'197 pm',ie:'8.417 eV',ea:'1.900 eV',melt:527,boil:1235,den:'9.196 g/cm³',yr:'1898',col:16,row:6},
+ {n:85,s:'At',name:'Astatine',mass:'[210]',cat:'halogen',mmn:'Nonmetal',p:6,g:17,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵',fl:[2,8,18,32,18,7,0],en:'2.20',state:'Solid',ox:'+1,−1',r:'202 pm',ie:'9.318 eV',ea:'2.800 eV',melt:575,boil:610,den:'~7 g/cm³',yr:'1940',col:17,row:6},
+ {n:86,s:'Rn',name:'Radon',mass:'[222]',cat:'noble',mmn:'Nonmetal',p:6,g:18,cfg:'[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶',fl:[2,8,18,32,18,8,0],en:'—',state:'Gas',ox:'0',r:'220 pm',ie:'10.745 eV',ea:'—',melt:202,boil:211.45,den:'0.00973 g/cm³',yr:'1900',col:18,row:6},
+ {n:87,s:'Fr',name:'Francium',mass:'[223]',cat:'alkali',mmn:'Metal',p:7,g:1,cfg:'[Rn] 7s¹',fl:[2,8,18,32,18,8,1],en:'0.70',state:'Solid',ox:'+1',r:'348 pm',ie:'4.073 eV',ea:'0.486 eV',melt:300,boil:950,den:'~1.87 g/cm³',yr:'1939',col:1,row:7},
+ {n:88,s:'Ra',name:'Radium',mass:'[226]',cat:'alkaline',mmn:'Metal',p:7,g:2,cfg:'[Rn] 7s²',fl:[2,8,18,32,18,8,2],en:'0.90',state:'Solid',ox:'+2',r:'283 pm',ie:'5.279 eV',ea:'0.100 eV',melt:973,boil:2010,den:'5.000 g/cm³',yr:'1898',col:2,row:7},
+ {n:89,s:'Ac',name:'Actinium',mass:'[227]',cat:'actinide',mmn:'Metal',p:7,g:3,cfg:'[Rn] 6d¹ 7s²',fl:[2,8,18,32,18,9,2],en:'1.10',state:'Solid',ox:'+3',r:'247 pm',ie:'5.170 eV',ea:'—',melt:1323,boil:3471,den:'10.070 g/cm³',yr:'1899',col:3,row:9},
+ {n:90,s:'Th',name:'Thorium',mass:'232.038',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 6d² 7s²',fl:[2,8,18,32,18,10,2],en:'1.30',state:'Solid',ox:'+4',r:'237 pm',ie:'6.307 eV',ea:'—',melt:2023,boil:5061,den:'11.720 g/cm³',yr:'1829',col:4,row:9},
+ {n:91,s:'Pa',name:'Protactinium',mass:'231.036',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f² 6d¹ 7s²',fl:[2,8,18,32,20,9,2],en:'1.50',state:'Solid',ox:'+5,+4',r:'243 pm',ie:'5.890 eV',ea:'—',melt:1841,boil:4300,den:'15.370 g/cm³',yr:'1913',col:5,row:9},
+ {n:92,s:'U',name:'Uranium',mass:'238.029',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f³ 6d¹ 7s²',fl:[2,8,18,32,21,9,2],en:'1.38',state:'Solid',ox:'+6,+4,+3',r:'186 pm',ie:'6.194 eV',ea:'—',melt:1405.3,boil:4404,den:'19.050 g/cm³',yr:'1789',col:6,row:9},
+ {n:93,s:'Np',name:'Neptunium',mass:'[237]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f⁴ 6d¹ 7s²',fl:[2,8,18,32,22,9,2],en:'1.36',state:'Solid',ox:'+6,+5,+4,+3',r:'190 pm',ie:'6.266 eV',ea:'—',melt:917,boil:4273,den:'20.250 g/cm³',yr:'1940',col:7,row:9},
+ {n:94,s:'Pu',name:'Plutonium',mass:'[244]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f⁶ 7s²',fl:[2,8,18,32,24,8,2],en:'1.28',state:'Solid',ox:'+6,+5,+4,+3',r:'187 pm',ie:'6.026 eV',ea:'—',melt:912.5,boil:3501,den:'19.840 g/cm³',yr:'1940',col:8,row:9},
+ {n:95,s:'Am',name:'Americium',mass:'[243]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f⁷ 7s²',fl:[2,8,18,32,25,8,2],en:'1.30',state:'Solid',ox:'+6,+5,+4,+3',r:'200 pm',ie:'5.974 eV',ea:'—',melt:1449,boil:2880,den:'13.670 g/cm³',yr:'1944',col:9,row:9},
+ {n:96,s:'Cm',name:'Curium',mass:'[247]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f⁷ 6d¹ 7s²',fl:[2,8,18,32,25,9,2],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'5.991 eV',ea:'—',melt:1613,boil:3383,den:'13.510 g/cm³',yr:'1944',col:10,row:9},
+ {n:97,s:'Bk',name:'Berkelium',mass:'[247]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f⁹ 7s²',fl:[2,8,18,32,27,8,2],en:'1.30',state:'Solid',ox:'+4,+3',r:'200 pm',ie:'6.198 eV',ea:'—',melt:1259,boil:2900,den:'14.780 g/cm³',yr:'1949',col:11,row:9},
+ {n:98,s:'Cf',name:'Californium',mass:'[251]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f¹⁰ 7s²',fl:[2,8,18,32,28,8,2],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'6.282 eV',ea:'—',melt:1173,boil:1743,den:'15.100 g/cm³',yr:'1950',col:12,row:9},
+ {n:99,s:'Es',name:'Einsteinium',mass:'[252]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f¹¹ 7s²',fl:[2,8,18,32,29,8,2],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'6.367 eV',ea:'—',melt:1133,boil:1269,den:'~8.84 g/cm³',yr:'1952',col:13,row:9},
+ {n:100,s:'Fm',name:'Fermium',mass:'[257]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f¹² 7s²',fl:[2,8,18,32,30,8,2],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'6.500 eV',ea:'—',melt:1800,boil:null,den:'~9.7 g/cm³',yr:'1952',col:14,row:9},
+ {n:101,s:'Md',name:'Mendelevium',mass:'[258]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f¹³ 7s²',fl:[2,8,18,32,31,8,2],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'6.580 eV',ea:'—',melt:1100,boil:null,den:'~10.3 g/cm³',yr:'1955',col:15,row:9},
+ {n:102,s:'No',name:'Nobelium',mass:'[259]',cat:'actinide',mmn:'Metal',p:7,g:null,cfg:'[Rn] 5f¹⁴ 7s²',fl:[2,8,18,32,32,8,2],en:'1.30',state:'Solid',ox:'+3,+2',r:'200 pm',ie:'6.650 eV',ea:'—',melt:1100,boil:null,den:'~9.9 g/cm³',yr:'1958',col:16,row:9},
+ {n:103,s:'Lr',name:'Lawrencium',mass:'[266]',cat:'actinide',mmn:'Metal',p:7,g:3,cfg:'[Rn] 5f¹⁴ 7s² 7p¹',fl:[2,8,18,32,32,8,3],en:'1.30',state:'Solid',ox:'+3',r:'200 pm',ie:'4.900 eV',ea:'—',melt:1900,boil:null,den:'~15.6 g/cm³',yr:'1961',col:17,row:9},
+ {n:104,s:'Rf',name:'Rutherfordium',mass:'[267]',cat:'transition',mmn:'Metal',p:7,g:4,cfg:'[Rn] 5f¹⁴ 6d² 7s²',fl:[2,8,18,32,32,10,2],en:'—',state:'Solid',ox:'+4',r:'—',ie:'6.011 eV',ea:'—',melt:2400,boil:5800,den:'~23.2 g/cm³',yr:'1969',col:4,row:7},
+ {n:105,s:'Db',name:'Dubnium',mass:'[268]',cat:'transition',mmn:'Metal',p:7,g:5,cfg:'[Rn] 5f¹⁴ 6d³ 7s²',fl:[2,8,18,32,32,11,2],en:'—',state:'Solid',ox:'+5',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~29.3 g/cm³',yr:'1970',col:5,row:7},
+ {n:106,s:'Sg',name:'Seaborgium',mass:'[269]',cat:'transition',mmn:'Metal',p:7,g:6,cfg:'[Rn] 5f¹⁴ 6d⁴ 7s²',fl:[2,8,18,32,32,12,2],en:'—',state:'Solid',ox:'+6',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~35.0 g/cm³',yr:'1974',col:6,row:7},
+ {n:107,s:'Bh',name:'Bohrium',mass:'[270]',cat:'transition',mmn:'Metal',p:7,g:7,cfg:'[Rn] 5f¹⁴ 6d⁵ 7s²',fl:[2,8,18,32,32,13,2],en:'—',state:'Solid',ox:'+7',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~37.1 g/cm³',yr:'1981',col:7,row:7},
+ {n:108,s:'Hs',name:'Hassium',mass:'[269]',cat:'transition',mmn:'Metal',p:7,g:8,cfg:'[Rn] 5f¹⁴ 6d⁶ 7s²',fl:[2,8,18,32,32,14,2],en:'—',state:'Solid',ox:'+8',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~41.0 g/cm³',yr:'1984',col:8,row:7},
+ {n:109,s:'Mt',name:'Meitnerium',mass:'[278]',cat:'unknown',mmn:'Unknown',p:7,g:9,cfg:'[Rn] 5f¹⁴ 6d⁷ 7s²',fl:[2,8,18,32,32,15,2],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~37.4 g/cm³',yr:'1982',col:9,row:7},
+ {n:110,s:'Ds',name:'Darmstadtium',mass:'[281]',cat:'unknown',mmn:'Unknown',p:7,g:10,cfg:'[Rn] 5f¹⁴ 6d⁹ 7s¹',fl:[2,8,18,32,32,17,1],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~34.8 g/cm³',yr:'1994',col:10,row:7},
+ {n:111,s:'Rg',name:'Roentgenium',mass:'[282]',cat:'unknown',mmn:'Unknown',p:7,g:11,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s¹',fl:[2,8,18,32,32,18,1],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~28.7 g/cm³',yr:'1994',col:11,row:7},
+ {n:112,s:'Cn',name:'Copernicium',mass:'[285]',cat:'transition',mmn:'Metal',p:7,g:12,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s²',fl:[2,8,18,32,32,18,2],en:'—',state:'Gas',ox:'—',r:'—',ie:'11.970 eV',ea:'—',melt:null,boil:null,den:'~23.7 g/cm³',yr:'1996',col:12,row:7},
+ {n:113,s:'Nh',name:'Nihonium',mass:'[286]',cat:'unknown',mmn:'Unknown',p:7,g:13,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹',fl:[2,8,18,32,32,18,3],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~16.0 g/cm³',yr:'2004',col:13,row:7},
+ {n:114,s:'Fl',name:'Flerovium',mass:'[289]',cat:'unknown',mmn:'Unknown',p:7,g:14,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²',fl:[2,8,18,32,32,18,4],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~14.0 g/cm³',yr:'1999',col:14,row:7},
+ {n:115,s:'Mc',name:'Moscovium',mass:'[290]',cat:'unknown',mmn:'Unknown',p:7,g:15,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³',fl:[2,8,18,32,32,18,5],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~13.5 g/cm³',yr:'2003',col:15,row:7},
+ {n:116,s:'Lv',name:'Livermorium',mass:'[293]',cat:'unknown',mmn:'Unknown',p:7,g:16,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴',fl:[2,8,18,32,32,18,6],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~12.9 g/cm³',yr:'2000',col:16,row:7},
+ {n:117,s:'Ts',name:'Tennessine',mass:'[294]',cat:'unknown',mmn:'Unknown',p:7,g:17,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵',fl:[2,8,18,32,32,18,7],en:'—',state:'Solid',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~7.2 g/cm³',yr:'2010',col:17,row:7},
+ {n:118,s:'Og',name:'Oganesson',mass:'[294]',cat:'unknown',mmn:'Unknown',p:7,g:18,cfg:'[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶',fl:[2,8,18,32,32,18,8],en:'—',state:'Gas',ox:'—',r:'—',ie:'—',ea:'—',melt:null,boil:null,den:'~4.95 g/cm³',yr:'2002',col:18,row:7},
+];
+
+// Zoom
+let zoom=1;
+const ZSTEP=0.15,ZMIN=0.3,ZMAX=2.5;
+function applyZoom(){
+  document.getElementById('zoomStage').style.transform=`scale(${zoom})`;
+  document.getElementById('zoomLabel').textContent=Math.round(zoom*100)+'%';
+}
+function zoomIn(){zoom=Math.min(ZMAX,zoom+ZSTEP);applyZoom();}
+function zoomOut(){zoom=Math.max(ZMIN,zoom-ZSTEP);applyZoom();}
+function zoomReset(){zoom=1;applyZoom();}
+
+// Pinch to zoom
+let lastDist=null;
+document.getElementById('tableWrapper').addEventListener('touchmove',function(e){
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(lastDist!==null){zoom=Math.min(ZMAX,Math.max(ZMIN,zoom+(d-lastDist)*0.005));applyZoom();}
+    lastDist=d;
+  }
+},{passive:false});
+document.getElementById('tableWrapper').addEventListener('touchend',()=>{lastDist=null;});
+
+// Search
+function doSearch(val){
+  document.querySelectorAll('.cell.found').forEach(c=>c.classList.remove('found'));
+  const q=val.trim().toLowerCase();
+  if(!q) return;
+  let found=null;
+  document.querySelectorAll('.cell[data-s]').forEach(cell=>{
+    if(cell.dataset.s===q||cell.dataset.name===q){cell.classList.add('found');found=cell;}
+  });
+  if(found) setTimeout(()=>found.scrollIntoView({behavior:'smooth',block:'center',inline:'center'}),80);
+}
+document.getElementById('searchInput').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){doSearch(this.value);this.blur();}
+});
+document.getElementById('searchInput').addEventListener('blur',function(){
+  if(this.value.trim()) doSearch(this.value);
+});
+document.getElementById('searchInput').addEventListener('input',function(){
+  if(!this.value.trim()) document.querySelectorAll('.cell.found').forEach(c=>c.classList.remove('found'));
+});
+
+function buildTable(){
+  const grid=document.getElementById('ptable');
+  const pm={};
+  E.forEach(el=>{pm[`${el.row},${el.col}`]=el;});
+  for(let row=1;row<=10;row++){
+    for(let col=1;col<=18;col++){
+      const el=pm[`${row},${col}`];
+      if(el){
+        const v=getValence(el);
+        const d=document.createElement('div');
+        d.className=`cell ${el.cat}`;
+        d.dataset.s=el.s.toLowerCase();
+        d.dataset.name=el.name.toLowerCase();
+        d.innerHTML=`${v!==null?`<span class="valence">${v}</span>`:''}<span class="num">${el.n}</span><span class="sym">${el.s}</span><span class="name">${el.name}</span><span class="mass">${el.mass}</span>`;
+        d.onclick=()=>openModal(el);
+        grid.appendChild(d);
+      } else if(row===6&&col===3){
+        const d=document.createElement('div');
+        d.className='cell lanthanide';d.style.opacity='.45';d.style.cursor='default';
+        d.innerHTML=`<span class="sym" style="font-size:11px">57–71</span><span class="name">Lanthanides</span>`;
+        grid.appendChild(d);
+      } else if(row===7&&col===3){
+        const d=document.createElement('div');
+        d.className='cell actinide';d.style.opacity='.45';d.style.cursor='default';
+        d.innerHTML=`<span class="sym" style="font-size:11px">89–103</span><span class="name">Actinides</span>`;
+        grid.appendChild(d);
+      } else if(row===8&&col===1){
+        const d=document.createElement('div');d.className='label-cell';
+        d.innerHTML=`<span style="color:var(--lanthanide);font-size:9px">Ln</span>`;grid.appendChild(d);
+      } else if(row===9&&col===1){
+        const d=document.createElement('div');d.className='label-cell';
+        d.innerHTML=`<span style="color:var(--actinide);font-size:9px">Ac</span>`;grid.appendChild(d);
+      } else {
+        grid.appendChild(document.createElement('div'));
+      }
+    }
+  }
+}
+
+function openModal(el){
+  document.getElementById('m-sym').textContent=el.s;
+  document.getElementById('m-sym').style.color=COL[el.cat];
+  document.getElementById('m-num').textContent=`Element ${el.n}`;
+  document.getElementById('m-name').textContent=el.name;
+  document.getElementById('m-cat').textContent=CAT[el.cat];
+  document.getElementById('m-mass').textContent=el.mass+' u';
+  document.getElementById('m-state').textContent=el.state;
+  document.getElementById('m-melt').textContent=kToC(el.melt);
+  document.getElementById('m-boil').textContent=kToC(el.boil);
+  document.getElementById('m-density').textContent=el.den;
+  document.getElementById('m-year').textContent=el.yr;
+  document.getElementById('m-mmn').textContent=el.mmn;
+  document.getElementById('m-ox').textContent=el.ox;
+  document.getElementById('m-en').textContent=el.en;
+  document.getElementById('m-radius').textContent=el.r;
+  document.getElementById('m-ie').textContent=el.ie;
+  document.getElementById('m-ea').textContent=el.ea;
+  document.getElementById('m-period').textContent=el.p;
+  document.getElementById('m-group').textContent=el.g||'f-block';
+  document.getElementById('m-floors').innerHTML=floors(el.fl);
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+buildTable();
+</script>
+</body>
+</html>
